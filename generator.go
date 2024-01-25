@@ -184,7 +184,7 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 	schema.GeneratedType = "*" + name
 
 	// setup closure for adding all schema properties to strct that don't already exist
-	addProperties := func(schema *Schema) error {
+	addProperties := func(schema *Schema, setRequired bool) error {
 		for propKey, prop := range schema.Properties {
 			fieldName := getGolangName(propKey)
 			if _, ok := strct.Fields[fieldName]; ok {
@@ -197,10 +197,15 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 				return err
 			}
 			f := Field{
-				Name:        fieldName,
-				JSONName:    propKey,
-				Type:        fieldType,
-				Required:    contains(schema.Required, propKey),
+				Name:     fieldName,
+				JSONName: propKey,
+				Type:     fieldType,
+				Required: func() bool {
+					if !setRequired {
+						return false
+					}
+					return contains(schema.Required, propKey)
+				}(),
 				Description: prop.Description,
 			}
 			if f.Required {
@@ -214,7 +219,7 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 	}
 
 	// regular properties
-	if err := addProperties(schema); err != nil {
+	if err := addProperties(schema, true); err != nil {
 		return "", fmt.Errorf("failed addProperties: %w", err)
 	}
 	// additionalProperties with typed sub-schema
@@ -275,7 +280,7 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 
 	for _, av := range schema.AllOf {
 		if av.Then != nil {
-			if err := addProperties(av.Then); err != nil {
+			if err := addProperties(av.Then, false); err != nil {
 				return "", fmt.Errorf("failed addProperties(AllOf.Then): %w", err)
 			}
 		}
