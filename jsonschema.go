@@ -47,6 +47,9 @@ type Schema struct {
 	AllOf []*Schema
 	OneOf []*Schema
 
+	If   *Schema
+	Then *Schema
+
 	// Default can be used to supply a default JSON value associated with a particular schema.
 	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.2
 	Default interface{}
@@ -123,10 +126,11 @@ func (schema *Schema) ID() string {
 // Type returns the type which is permitted or an empty string if the type field is missing.
 // The 'type' field in JSON schema also allows for a single string value or an array of strings.
 // Examples:
-//   "a" => "a", false
-//   [] => "", false
-//   ["a"] => "a", false
-//   ["a", "b"] => "a", true
+//
+//	"a" => "a", false
+//	[] => "", false
+//	["a"] => "a", false
+//	["a", "b"] => "a", true
 func (schema *Schema) Type() (firstOrDefault string, multiple bool) {
 	// We've got a single value, e.g. { "type": "object" }
 	if ts, ok := schema.TypeValue.(string); ok {

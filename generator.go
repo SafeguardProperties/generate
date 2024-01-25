@@ -182,26 +182,40 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 	}
 	// cache the object name in case any sub-schemas recursively reference it
 	schema.GeneratedType = "*" + name
+
+	// setup closure for adding all schema properties to strct that don't already exist
+	addProperties := func(schema *Schema) error {
+		for propKey, prop := range schema.Properties {
+			fieldName := getGolangName(propKey)
+			if _, ok := strct.Fields[fieldName]; ok {
+				continue
+			}
+			// calculate sub-schema name here, may not actually be used depending on type of schema!
+			subSchemaName := g.getSchemaName(fieldName, prop)
+			fieldType, err := g.processSchema(subSchemaName, prop)
+			if err != nil {
+				return err
+			}
+			f := Field{
+				Name:        fieldName,
+				JSONName:    propKey,
+				Type:        fieldType,
+				Required:    contains(schema.Required, propKey),
+				Description: prop.Description,
+			}
+			if f.Required {
+				strct.GenerateCode = true
+			}
+			strct.Fields[f.Name] = f
+		}
+
+		// done
+		return nil
+	}
+
 	// regular properties
-	for propKey, prop := range schema.Properties {
-		fieldName := getGolangName(propKey)
-		// calculate sub-schema name here, may not actually be used depending on type of schema!
-		subSchemaName := g.getSchemaName(fieldName, prop)
-		fieldType, err := g.processSchema(subSchemaName, prop)
-		if err != nil {
-			return "", err
-		}
-		f := Field{
-			Name:        fieldName,
-			JSONName:    propKey,
-			Type:        fieldType,
-			Required:    contains(schema.Required, propKey),
-			Description: prop.Description,
-		}
-		if f.Required {
-			strct.GenerateCode = true
-		}
-		strct.Fields[f.Name] = f
+	if err := addProperties(schema); err != nil {
+		return "", fmt.Errorf("failed addProperties: %w", err)
 	}
 	// additionalProperties with typed sub-schema
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.AdditionalPropertiesBool == nil {
@@ -258,6 +272,15 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 			strct.AdditionalType = "false"
 		}
 	}
+
+	for _, av := range schema.AllOf {
+		if av.Then != nil {
+			if err := addProperties(av.Then); err != nil {
+				return "", fmt.Errorf("failed addProperties(AllOf.Then): %w", err)
+			}
+		}
+	}
+
 	g.Structs[strct.Name] = strct
 	// objects are always a pointer
 	return getPrimitiveTypeName("object", name, true)
