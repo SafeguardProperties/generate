@@ -46,11 +46,20 @@ func Output(w io.Writer, g *Generator, pkg string) {
 
 	for _, k := range getOrderedStructNames(structs) {
 		s := structs[k]
-		if s.GenerateMarshalCode {
-			if len(s.Fields) > 0 {
-				emitMarshalCode2(codeBuf, s, imports)
+
+		// determine if this struct contains any []Image
+		emitMarshalCode := func() bool {
+			for _, v := range s.Fields {
+				if v.Type == "[]Image" {
+					return true
+				}
 			}
+			return false
+		}()
+		if emitMarshalCode {
+			emitMarshalCode2(codeBuf, s, imports)
 		}
+
 		if s.GenerateCode {
 			emitUnmarshalCode(codeBuf, s, imports)
 		}

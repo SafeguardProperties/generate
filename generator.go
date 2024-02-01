@@ -211,7 +211,6 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 			if f.Required {
 				strct.GenerateCode = true
 			}
-			strct.GenerateMarshalCode = true
 			strct.Fields[f.Name] = f
 		}
 
@@ -409,9 +408,8 @@ type Struct struct {
 	Description string
 	Fields      map[string]Field
 
-	GenerateMarshalCode bool
-	GenerateCode        bool
-	AdditionalType      string
+	GenerateCode   bool
+	AdditionalType string
 }
 
 // Field defines the data required to generate a field in Go.
