@@ -47,7 +47,7 @@ func Output(w io.Writer, g *Generator, pkg string) {
 	for _, k := range getOrderedStructNames(structs) {
 		s := structs[k]
 		if s.GenerateCode {
-			emitMarshalCode(codeBuf, s, imports)
+			emitMarshalCode2(codeBuf, s, imports)
 			emitUnmarshalCode(codeBuf, s, imports)
 		}
 	}
@@ -80,9 +80,9 @@ func Output(w io.Writer, g *Generator, pkg string) {
 
 			// Only apply omitempty if the field is not required.
 			omitempty := ",omitempty"
-			if f.Required {
-				omitempty = ""
-			}
+			// if f.Required {
+			// 	omitempty = ""
+			// }
 
 			if f.Description != "" {
 				outputFieldDescriptionComment(f.Description, w)
@@ -96,6 +96,25 @@ func Output(w io.Writer, g *Generator, pkg string) {
 
 	// write code after structs for clarity
 	w.Write(codeBuf.Bytes())
+}
+
+func emitMarshalCode2(w io.Writer, s Struct, imports map[string]bool) {
+	fmt.Fprintf(w,
+		`
+func (strct *%s) MarshalJSON() ([]byte, error) {`, s.Name)
+
+	for _, f := range s.Fields {
+		if f.Type == "[]Image" {
+			fmt.Fprintf(w, `
+	strct.%v = nil`, f.Name)
+		}
+	}
+
+	fmt.Fprintf(w, `
+	type Alias %s
+    return json.Marshal((*Alias)(strct))
+}
+`, s.Name)
 }
 
 func emitMarshalCode(w io.Writer, s Struct, imports map[string]bool) {
@@ -188,7 +207,7 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
 	for _, fieldKey := range getOrderedFieldNames(s.Fields) {
 		f := s.Fields[fieldKey]
 		if f.Required {
-			fmt.Fprintf(w, "    %sReceived := false\n", f.JSONName)
+			fmt.Fprintf(w, "    %sReceived := false\n", getGolangName(f.JSONName))
 		}
 	}
 	// setup initial unmarshal
@@ -220,7 +239,7 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
              }
 `, f.JSONName, f.Name)
 		if f.Required {
-			fmt.Fprintf(w, "            %sReceived = true\n", f.JSONName)
+			fmt.Fprintf(w, "            %sReceived = true\n", getGolangName(f.JSONName))
 		}
 	}
 
@@ -258,7 +277,7 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
     if !%sReceived {
         return errors.New("\"%s\" is required but was not present")
     }
-`, f.JSONName, f.JSONName, f.JSONName)
+`, f.JSONName, getGolangName(f.JSONName), f.JSONName)
 		}
 	}
 
