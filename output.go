@@ -46,8 +46,12 @@ func Output(w io.Writer, g *Generator, pkg string) {
 
 	for _, k := range getOrderedStructNames(structs) {
 		s := structs[k]
+		if s.GenerateMarshalCode {
+			if len(s.Fields) > 0 {
+				emitMarshalCode2(codeBuf, s, imports)
+			}
+		}
 		if s.GenerateCode {
-			emitMarshalCode2(codeBuf, s, imports)
 			emitUnmarshalCode(codeBuf, s, imports)
 		}
 	}
