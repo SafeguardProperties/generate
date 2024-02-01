@@ -88,6 +88,11 @@ func Output(w io.Writer, g *Generator, pkg string) {
 				outputFieldDescriptionComment(f.Description, w)
 			}
 
+			switch f.Type {
+			case "bool", "float64":
+				omitempty = ""
+			}
+
 			fmt.Fprintf(w, "  %s %s `json:\"%s%s\"`\n", f.Name, f.Type, f.JSONName, omitempty)
 		}
 
