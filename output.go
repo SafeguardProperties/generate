@@ -44,6 +44,8 @@ func Output(w io.Writer, g *Generator, pkg string) {
 	codeBuf := new(bytes.Buffer)
 	imports := make(map[string]bool)
 
+	imports["golang.sgpdev.com/conduit/pkg/jsonschemaimagewalker"] = true
+
 	for _, k := range getOrderedStructNames(structs) {
 		s := structs[k]
 

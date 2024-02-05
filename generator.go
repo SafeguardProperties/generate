@@ -167,7 +167,7 @@ func (g *Generator) processArray(name string, schema *Schema) (typeStr string, e
 		}
 		return finalType, nil
 	}
-	return "[]Image", nil
+	return "[]jsonschemaimagewalker.Image", nil
 }
 
 // name: name of the struct (calculated by caller)
