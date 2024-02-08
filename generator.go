@@ -90,7 +90,7 @@ func (g *Generator) processReference(schema *Schema) (string, error) {
 	return refSchema.GeneratedType, nil
 }
 
-// returns the type refered to by schema after resolving all dependencies
+// returns the type referred to by schema after resolving all dependencies
 func (g *Generator) processSchema(schemaName string, schema *Schema) (typ string, err error) {
 	if len(schema.Definitions) > 0 {
 		g.processDefinitions(schema)
@@ -167,7 +167,8 @@ func (g *Generator) processArray(name string, schema *Schema) (typeStr string, e
 		}
 		return finalType, nil
 	}
-	return "[]jsonschemaimagewalker.Image", nil
+
+	return "[]interface{}", nil
 }
 
 // name: name of the struct (calculated by caller)
@@ -199,7 +200,14 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 			f := Field{
 				Name:     fieldName,
 				JSONName: propKey,
-				Type:     fieldType,
+				Type: func() string {
+					switch {
+					case strings.HasSuffix(propKey, "|_image"):
+						return "[]jsonschemaimagewalker.Image"
+					default:
+						return fieldType
+					}
+				}(),
 				Required: func() bool {
 					if !setRequired {
 						return false
