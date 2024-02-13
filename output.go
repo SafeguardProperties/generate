@@ -49,10 +49,10 @@ func Output(w io.Writer, g *Generator, pkg string) {
 	for _, k := range getOrderedStructNames(structs) {
 		s := structs[k]
 
-		// determine if this struct contains any []Image
+		// determine if this struct contains any []jsonschemaimagewalker.Image
 		emitMarshalCode := func() bool {
 			for _, v := range s.Fields {
-				if v.Type == "[]Image" {
+				if v.Type == "[]jsonschemaimagewalker.Image" {
 					return true
 				}
 			}
@@ -124,7 +124,7 @@ func emitMarshalCode2(w io.Writer, s Struct, imports map[string]bool) {
 func (strct *%s) MarshalJSON() ([]byte, error) {`, s.Name)
 
 	for _, f := range s.Fields {
-		if f.Type == "[]Image" {
+		if f.Type == "[]jsonschemaimagewalker.Image" {
 			fmt.Fprintf(w, `
 	strct.%v = nil`, f.Name)
 		}
