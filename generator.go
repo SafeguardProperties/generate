@@ -286,17 +286,40 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 		}
 	}
 
-	for _, av := range schema.AllOf {
-		if av.Then != nil {
-			if err := addProperties(av.Then, false); err != nil {
-				return "", fmt.Errorf("failed addProperties(AllOf.Then): %w", err)
-			}
-		}
+	// for _, av := range schema.AllOf {
+	// 	if av.Then != nil {
+	// 		if err := addProperties(av.Then, false); err != nil {
+	// 			return "", fmt.Errorf("failed addProperties(AllOf.Then): %w", err)
+	// 		}
+	// 	}
+	// }
+
+	// walk schemas AllOf.Then's recursively finding properties to add
+	if err := walkAllOfThenAndAddProperties(schema, addProperties); err != nil {
+		return "", fmt.Errorf("failed walkAllOfThenAndAddProperties: %w", err)
 	}
 
 	g.Structs[strct.Name] = strct
 	// objects are always a pointer
 	return getPrimitiveTypeName("object", name, true)
+}
+
+// walkAllOfThenAndAddProperties will iterate the provided schema's AllOf and add any properties found under each child
+// schema's Then.  It will then recursively walk the child Then doing the same.  This allows us to discover nested
+// properties that are part of more complicated logic.  I would have made this a closure in processObject, but it needs
+// to recurse.
+func walkAllOfThenAndAddProperties(schema *Schema, addProperties func(schema *Schema, setRequired bool) error) error {
+	for _, av := range schema.AllOf {
+		if av.Then != nil {
+			if err := addProperties(av.Then, false); err != nil {
+				return fmt.Errorf("failed addProperties(AllOf.Then): %w", err)
+			}
+
+			walkAllOfThenAndAddProperties(av.Then, addProperties)
+		}
+	}
+
+	return nil
 }
 
 func contains(s []string, e string) bool {
