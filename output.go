@@ -95,9 +95,9 @@ func Output(w io.Writer, g *Generator, pkg string) {
 
 			// Only apply omitempty if the field is not required.
 			omitempty := ",omitempty"
-			// if f.Required {
-			// 	omitempty = ""
-			// }
+			//if f.Required {
+			//	omitempty = ""
+			//}
 
 			if f.Description != "" {
 				outputFieldDescriptionComment(f.Description, w)
@@ -108,6 +108,10 @@ func Output(w io.Writer, g *Generator, pkg string) {
 				omitempty = ""
 			}
 
+			if _, ok := omitThese[f.Name]; ok {
+				omitempty = ",omitempty"
+			}
+
 			fmt.Fprintf(w, "  %s %s `json:\"%s%s\"`\n", f.Name, f.Type, f.JSONName, omitempty)
 		}
 
@@ -116,6 +120,10 @@ func Output(w io.Writer, g *Generator, pkg string) {
 
 	// write code after structs for clarity
 	w.Write(codeBuf.Bytes())
+}
+
+var omitThese = map[string]struct{}{
+	"FUCKTHISSHIT": struct{}{},
 }
 
 func emitMarshalCode2(w io.Writer, s Struct, imports map[string]bool) {
