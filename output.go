@@ -104,11 +104,20 @@ func Output(w io.Writer, g *Generator, pkg string) {
 			}
 
 			switch f.Type {
-			case "bool", "float64":
+			case "bool":
+				omitempty = ",omitempty"
+			case "float64":
 				omitempty = ""
 			}
 
-			fmt.Fprintf(w, "  %s %s `json:\"%s%s\"`\n", f.Name, f.Type, f.JSONName, omitempty)
+			outputType := f.Type
+
+			switch f.Type {
+			case "bool":
+				outputType = "*bool"
+			}
+
+			fmt.Fprintf(w, "  %s %s `json:\"%s%s\"`\n", f.Name, outputType, f.JSONName, omitempty)
 		}
 
 		fmt.Fprintln(w, "}")
